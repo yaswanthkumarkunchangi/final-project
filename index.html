@@ -1,209 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Simple E-Commerce</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>E-commerce with Firebase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f4f4f4;
-    }
-
-    header {
-      background: #333;
-      color: #fff;
-      padding: 1rem;
-      text-align: center;
-    }
-
-    .container {
-      padding: 20px;
-    }
-
-    .products {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-    }
-
-    .product {
-      background: #fff;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-
-    .product img {
-      width: 100%;
-      max-height: 150px;
-      object-fit: contain;
-    }
-
-    .product h3 {
-      margin: 10px 0;
-    }
-
-    .product p {
-      color: #555;
-    }
-
-    .product button {
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-
-    .product button:hover {
-      background: #218838;
-    }
-
-    #cartBtn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      z-index: 1000;
-    }
-
-    #cartModal {
-      display: none;
-      position: fixed;
-      top: 60px;
-      right: 20px;
-      width: 300px;
-      background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      border-radius: 8px;
-      padding: 20px;
-      z-index: 1001;
-    }
-
-    #cartModal h2 {
-      margin-top: 0;
-    }
-
-    .cart-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .cart-item span {
-      color: #333;
-    }
-
-    .close-btn {
-      background: red;
-      color: white;
-      border: none;
-      padding: 5px 8px;
-      float: right;
-      border-radius: 3px;
-      cursor: pointer;
-    }
+    body { font-family: Arial; background: #f4f4f4; margin: 0; padding: 0; }
+    header { background: #333; color: #fff; padding: 1rem; text-align: center; }
+    .container { padding: 20px; }
+    .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+    .product { background: white; padding: 15px; border-radius: 5px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .product img { width: 100%; max-height: 150px; object-fit: cover; }
+    .product button { margin-top: 10px; background: #28a745; color: white; padding: 8px 12px; border: none; cursor: pointer; border-radius: 5px; }
+    #cartBtn { position: fixed; top: 20px; right: 20px; background: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+    #cartModal { display: none; position: fixed; top: 60px; right: 20px; background: white; width: 300px; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .cart-item { display: flex; justify-content: space-between; margin-bottom: 10px; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Clothing E-Commerce Store</h1>
-  </header>
+<header>
+  <h1>Clothing Store (Firebase)</h1>
+</header>
 
-  <button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button>
+<button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button>
 
-  <div class="container">
-    <div class="products" id="productList">
-      <!-- Products will be loaded here -->
-    </div>
-  </div>
+<div class="container">
+  <div class="products" id="productList">Loading products...</div>
+</div>
 
-  <div id="cartModal">
-    <button class="close-btn" onclick="toggleCart()">X</button>
-    <h2>Your Cart</h2>
-    <div id="cartItems"></div>
-    <hr />
-    <p><strong>Total: $<span id="totalPrice">0.00</span></strong></p>
-  </div>
+<div id="cartModal">
+  <h2>Your Cart</h2>
+  <div id="cartItems"></div>
+  <hr />
+  <p><strong>Total: $<span id="totalPrice">0.00</span></strong></p>
+</div>
 
-  <script>
-    const products = [
-      { id: 1, name: "Denim Jacket", price: 49.99, image: "https://via.placeholder.com/200x150?text=Denim+Jacket" },
-      { id: 2, name: "White T-shirt", price: 19.99, image: "https://via.placeholder.com/200x150?text=White+T-shirt" },
-      { id: 3, name: "Skinny Jeans", price: 39.99, image: "https://via.placeholder.com/200x150?text=Skinny+Jeans" },
-      { id: 4, name: "Polo Shirt", price: 24.99, image: "https://via.placeholder.com/200x150?text=Polo+Shirt" },
-      { id: 5, name: "Summer Dress", price: 29.99, image: "https://via.placeholder.com/200x150?text=Summer+Dress" },
-    ];
+<script>
+  // ✅ 1. Firebase Config (replace with your own)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-    let cart = [];
+  // ✅ 2. Init Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    function renderProducts() {
-      const productList = document.getElementById('productList');
-      productList.innerHTML = '';
-      products.forEach(product => {
-        productList.innerHTML += `
-          <div class="product">
-            <img src="${product.image}" alt="${product.name}">
-            <h3>${product.name}</h3>
-            <p>$${product.price.toFixed(2)}</p>
-            <button onclick="addToCart(${product.id})">Add to Cart</button>
-          </div>
-        `;
-      });
+  // ✅ 3. Load products from Firebase
+  const productList = document.getElementById('productList');
+  const cart = [];
+
+  function renderProduct(id, data) {
+    const div = document.createElement('div');
+    div.className = 'product';
+    div.innerHTML = `
+      <img src="${data.image}" alt="${data.name}" />
+      <h3>${data.name}</h3>
+      <p>$${data.price.toFixed(2)}</p>
+      <button onclick="addToCart('${id}', '${data.name}', ${data.price})">Add to Cart</button>
+    `;
+    productList.appendChild(div);
+  }
+
+  db.ref('products').once('value', snapshot => {
+    productList.innerHTML = '';
+    snapshot.forEach(child => {
+      renderProduct(child.key, child.val());
+    });
+  });
+
+  // ✅ 4. Cart functionality
+  function addToCart(id, name, price) {
+    const existing = cart.find(item => item.id === id);
+    if (existing) {
+      existing.qty++;
+    } else {
+      cart.push({ id, name, price, qty: 1 });
     }
+    updateCart();
+  }
 
-    function addToCart(id) {
-      const product = products.find(p => p.id === id);
-      const existing = cart.find(item => item.id === id);
-      if (existing) {
-        existing.qty += 1;
-      } else {
-        cart.push({ ...product, qty: 1 });
-      }
-      updateCart();
-    }
+  function updateCart() {
+    const cartItems = document.getElementById('cartItems');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const cartCount = document.getElementById('cartCount');
 
-    function updateCart() {
-      const cartItems = document.getElementById('cartItems');
-      const cartCount = document.getElementById('cartCount');
-      const totalPriceEl = document.getElementById('totalPrice');
-      cartItems.innerHTML = '';
+    cartItems.innerHTML = '';
+    let total = 0;
+    cart.forEach(item => {
+      const subtotal = item.qty * item.price;
+      total += subtotal;
+      cartItems.innerHTML += `<div class="cart-item">
+        <span>${item.name} x${item.qty}</span>
+        <span>$${subtotal.toFixed(2)}</span>
+      </div>`;
+    });
 
-      let total = 0;
-      cart.forEach(item => {
-        total += item.price * item.qty;
-        cartItems.innerHTML += `
-          <div class="cart-item">
-            <span>${item.name} x${item.qty}</span>
-            <span>$${(item.price * item.qty).toFixed(2)}</span>
-          </div>
-        `;
-      });
+    cartCount.textContent = cart.reduce((sum, item) => sum + item.qty, 0);
+    totalPriceEl.textContent = total.toFixed(2);
+  }
 
-      cartCount.innerText = cart.reduce((sum, item) => sum + item.qty, 0);
-      totalPriceEl.innerText = total.toFixed(2);
-    }
+  // ✅ 5. Toggle cart
+  const cartBtn = document.getElementById('cartBtn');
+  const cartModal = document.getElementById('cartModal');
+  cartBtn.onclick = () => {
+    cartModal.style.display = cartModal.style.display === 'block' ? 'none' : 'block';
+  };
+</script>
 
-    function toggleCart() {
-      const cartModal = document.getElementById('cartModal');
-      cartModal.style.display = cartModal.style.display === 'block' ? 'none' : 'block';
-    }
-
-    document.getElementById('cartBtn').addEventListener('click', toggleCart);
-
-    // Init
-    renderProducts();
-  </script>
 </body>
 </html>
